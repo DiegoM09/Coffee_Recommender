@@ -1,8 +1,4 @@
-# 🎈 Blank app template
-
-A simple Streamlit app template for you to modify!
-
-[![Open in Streamlit](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://blank-app-template.streamlit.app/)
+# 🎈 The Grind Theory ☕
 
 ### How to run it on your own machine
 
@@ -17,3 +13,4 @@ A simple Streamlit app template for you to modify!
    ```
    $ streamlit run streamlit_app.py
    ```
+(You must have your own valid Chat GPT API KEY to run the AI Recommender)
