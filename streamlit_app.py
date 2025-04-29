@@ -1,6 +1,8 @@
 import streamlit as st
 import pandas as pd
-import openai
+from openai import OpenAI
+
+client = OpenAI(api_key=st.secrets["openai"]["OPENAI_API_KEY"])
 
 # Set page config
 st.set_page_config(page_title="The Grind Theory | Coffee Match", page_icon="☕", layout="wide")
@@ -87,35 +89,57 @@ st.markdown("""
         .profile-container {
             display: flex;
             flex-wrap: wrap;
-            gap: 1rem;
-            margin: 2rem auto;
-            max-width: 1200px;
+            gap: 0.75rem;
+            margin: 1rem auto;
+            justify-content: center;
+            max-width: 900px;
         }
         .profile-item {
             background: rgba(255,255,255,0.03);
-            backdrop-filter: blur(10px);
-            border-radius: 12px;
-            padding: 1.5rem;
-            flex: 1;
-            min-width: 200px;
-            border-bottom: 2px solid #d4a574;
-            transition: transform 0.2s ease;
-        }
-        .profile-item:hover {
-            transform: translateY(-2px);
+            border-radius: 8px;
+            padding: 0.75rem 1.25rem;
+            flex: 0 1 auto;
+            min-width: 140px;
+            border: 1px solid rgba(212,165,116,0.2);
+            text-align: center;
         }
         .profile-label {
             color: #d4a574;
-            font-size: 0.75rem;
+            font-size: 0.7rem;
             text-transform: uppercase;
-            letter-spacing: 2px;
-            margin-bottom: 0.5rem;
-            opacity: 0.8;
+            letter-spacing: 1px;
+            margin-bottom: 0.25rem;
+            opacity: 0.9;
         }
         .profile-value {
             color: #fff;
-            font-size: 1.25rem;
-            font-weight: 300;
+            font-size: 1rem;
+            font-weight: 400;
+        }
+        
+        /* Share Button Fix */
+        .share-button {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            padding: 0.75rem 1.5rem;
+            background: #2a2a2a;
+            color: white;
+            border-radius: 8px;
+            text-decoration: none;
+            font-weight: 500;
+            font-size: 0.9rem;
+            transition: all 0.2s ease;
+            margin-top: 2rem;
+            border: none;
+            width: auto;
+            min-width: 160px;
+        }
+        .share-button:hover {
+            background: #404040;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
         }
     </style>
 """, unsafe_allow_html=True)
@@ -303,23 +327,61 @@ st.markdown("""
             text-align: center;
             margin: 2rem 0;
         }
+        
+        /* Updated Profile Chart Styles */
+        .profile-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            max-width: 900px;
+            margin: 2rem auto;
+            padding: 1rem;
+        }
+        .profile-item {
+            background: #23272f;
+            border-radius: 14px;
+            padding: 1.2rem;
+            position: relative;
+            overflow: hidden;
+        }
+        .profile-item::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            bottom: 0;
+            height: 4px;
+            width: 100%;
+            background: linear-gradient(90deg, #d4a574 0%, #b88b5c 100%);
+        }
+        .profile-label {
+            color: #a3a3a3;
+            font-size: 0.85rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 0.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        .profile-value {
+            color: #f3f4f6;
+            font-size: 1.2rem;
+            font-weight: 600;
+            padding: 0.5rem;
+            background: rgba(255,255,255,0.03);
+            border-radius: 8px;
+            text-align: center;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
     </style>
 """, unsafe_allow_html=True)
 
 # Add audio for a jazz coffee song
-#st.markdown("""
-    #<audio autoplay loop>
-        #<source src="https://www.bensound.com/bensound-music/bensound-jazzyfrenchy.mp3" type="audio/mpeg">
-        #Your browser does not support the audio element.
-    #</audio>
-#""", unsafe_allow_html=True)
-
-# Load product catalog
-@st.cache_data
-def load_catalog():
-    return pd.read_csv("the_grind_theory_catalog.csv")
-
-df_catalog = load_catalog()
+st.markdown("""
+<audio autoplay loop>
+    <source src="https://cdn.pixabay.com/download/audio/2022/06/01/audio_2b88c60731.mp3?filename=sunny-morning-168873.mp3" type="audio/mpeg">
+</audio>
+""", unsafe_allow_html=True)
 
 # Initialize session state
 if 'preferences' not in st.session_state:
@@ -330,7 +392,12 @@ if 'gpt_message' not in st.session_state:
     st.session_state.gpt_message = ""
 
 # Page Title
-st.title("\u2615 The Grind Theory: Find Your Perfect Coffee")
+st.markdown("""
+    <h1 style='text-align: center; margin: 1.5rem auto; max-width: 800px; padding: 0 1rem;'>
+        ☕ The Grind Theory: Find Your Perfect Coffee in Ireland
+    </h1>
+""", unsafe_allow_html=True)
+
 st.markdown("""
 <div style='text-align: center; font-size:18px;'>
 Welcome! Let's discover your perfect coffee match.<br>
@@ -354,13 +421,13 @@ def create_card(title, image_url, key):
 IMAGES = {
     "hot": "https://images.unsplash.com/photo-1514432324607-a09d9b4aefdd?w=500&h=500&fit=crop",
     "cold": "https://images.unsplash.com/photo-1461023058943-07fcbe16d735?w=500&h=500&fit=crop",
-    "chocolatey": "https://images.unsplash.com/photo-1511920170033-f8396924c348?w=500&h=500&fit=crop",
-    "fruity": "https://images.unsplash.com/photo-1546173159-315724a31696?w=500&h=500&fit=crop",
-    "nutty": "https://images.unsplash.com/photo-1604492176339-c8172326fc25?w=500&h=500&fit=crop",
-    "espresso": "https://images.unsplash.com/photo-1587075706555-c1329c8a75fc?w=500&h=500&fit=crop",
-    "french": "https://images.unsplash.com/photo-1544887534-3d1169e69487?w=500&h=500&fit=crop",
+    "chocolatey": "https://cdn.pixabay.com/photo/2015/10/02/12/00/chocolate-968457_640.jpg?w=500&h=500&fit=crop",
+    "fruity": "https://cdn.pixabay.com/photo/2015/03/30/19/36/fruit-700006_640.jpg?w=500&h=500&fit=crop",
+    "nutty": "https://cdn.pixabay.com/photo/2023/07/20/11/00/cookie-8139062_1280.jpg?w=500&h=500&fit=crop",
+    "espresso": "https://cdn.pixabay.com/photo/2019/07/13/11/44/coffee-4334647_1280.jpg?w=500&h=500&fit=crop",
+    "french": "https://cdn.pixabay.com/photo/2017/04/11/02/00/kettle-2220369_640.jpg?w=500&h=500&fit=crop",
     "pour": "https://images.unsplash.com/photo-1545665225-b23b99e4d45e?w=500&h=500&fit=crop",
-    "mild": "https://images.unsplash.com/photo-1517701604599-bb29b565090c?w=500&h=500&fit=crop",
+    "mild": "https://cdn.pixabay.com/photo/2014/12/11/02/57/coffee-563800_640.jpg?w=500&h=500&fit=crop",
     "medium": "https://images.unsplash.com/photo-1511537190424-bbbab87ac5eb?w=500&h=500&fit=crop",
     "strong": "https://images.unsplash.com/photo-1521302080334-4bebac2763a6?w=500&h=500&fit=crop"
 }
@@ -369,13 +436,13 @@ IMAGES = {
 if st.session_state.step == 1:
     st.markdown("<h2 style='text-align: center;'>How do you prefer your coffee?</h2>", unsafe_allow_html=True)
     col1, col2 = st.columns(2)
-    
+
     with col1:
         if create_card("Hot ☕", IMAGES["hot"], "hot"):
             st.session_state.preferences['Temperature'] = 'Hot'
             st.session_state.step += 1
             st.rerun()
-            
+
     with col2:
         if create_card("Cold ❄️", IMAGES["cold"], "cold"):
             st.session_state.preferences['Temperature'] = 'Cold'
@@ -386,13 +453,13 @@ if st.session_state.step == 1:
 elif st.session_state.step == 2:
     st.markdown("<h2 style='text-align: center;'>What flavor notes do you prefer?</h2>", unsafe_allow_html=True)
     col1, col2, col3 = st.columns(3)
-    
+
     flavors = {
         "Chocolatey 🍫": (IMAGES["chocolatey"], col1),
         "Fruity 🍒": (IMAGES["fruity"], col2),
         "Nutty 🌰": (IMAGES["nutty"], col3)
     }
-    
+
     for flavor, (img, col) in flavors.items():
         with col:
             if create_card(flavor, img, f"flavor_{flavor}"):
@@ -404,13 +471,13 @@ elif st.session_state.step == 2:
 elif st.session_state.step == 3:
     st.markdown("<h2 style='text-align: center;'>How do you usually brew your coffee?</h2>", unsafe_allow_html=True)
     col1, col2, col3 = st.columns(3)
-    
+
     methods = {
         "Espresso Machine ☕": (IMAGES["espresso"], col1),
         "French Press 🍶": (IMAGES["french"], col2),
         "Pour Over 💧": (IMAGES["pour"], col3)
     }
-    
+
     for method, (img, col) in methods.items():
         with col:
             if create_card(method, img, f"method_{method}"):
@@ -422,13 +489,13 @@ elif st.session_state.step == 3:
 elif st.session_state.step == 4:
     st.markdown("<h2 style='text-align: center;'>How strong do you like your coffee?</h2>", unsafe_allow_html=True)
     col1, col2, col3 = st.columns(3)
-    
+
     strengths = {
         "Mild 🌿": (IMAGES["mild"], col1),
         "Medium ⚖️": (IMAGES["medium"], col2),
         "Strong 💪": (IMAGES["strong"], col3)
     }
-    
+
     for strength, (img, col) in strengths.items():
         with col:
             if create_card(strength, img, f"strength_{strength}"):
@@ -438,83 +505,46 @@ elif st.session_state.step == 4:
 
 # Step 5: Results
 elif st.session_state.step == 5:
-    st.markdown("<h2 style='text-align: center; margin-bottom: 2rem;'>Your Perfect Coffee Match</h2>", unsafe_allow_html=True)
+    st.markdown("<h2 style='text-align: center; margin-bottom: 2rem;'>Your Perfect Coffee Match in Ireland</h2>", unsafe_allow_html=True)
     prefs = st.session_state.preferences
 
-    # Minimalist profile display
+    # Define icons for each preference type
+    icons = {
+        'Temperature': '🌡️',
+        'Flavor': '🎯',
+        'Brew Method': '⚗️',
+        'Strength': '💪'
+    }
+
+    # Enhanced profile display
     st.markdown("<div class='profile-container'>", unsafe_allow_html=True)
-    
     for key, value in prefs.items():
+        icon = icons.get(key, '📊')
         st.markdown(f"""
             <div class='profile-item'>
-                <div class='profile-label'>{key}</div>
+                <div class='profile-label'>{icon} {key}</div>
                 <div class='profile-value'>{value}</div>
             </div>
         """, unsafe_allow_html=True)
-    
     st.markdown("</div>", unsafe_allow_html=True)
-
-    # Filter and display recommendations
-    filtered = df_catalog[
-        df_catalog['Flavor Notes'].str.contains(prefs['Flavor'], case=False) &
-        df_catalog['Brew Method'].str.contains(prefs['Brew Method'], case=False) &
-        df_catalog['Strength'].str.contains(prefs['Strength'], case=False)
-    ]
-
-    if not filtered.empty:
-        top_recs = filtered.sample(min(3, len(filtered)))
-        st.markdown("<h3 style='color: #fbbf24; margin: 2.5rem 0 1.5rem;'>🌟 Recommended Coffees</h3>", unsafe_allow_html=True)
-        st.markdown("<div class='recommendation-container'>", unsafe_allow_html=True)
-        for _, row in top_recs.iterrows():
-            st.markdown(f"""
-                <div class="recommendation-card">
-                    <div class="coffee-name">{row['Product Name']}</div>
-                    <div class="coffee-detail"><span class="coffee-label">Roast:</span>{row['Roast Level']}</div>
-                    <div class="coffee-detail"><span class="coffee-label">Notes:</span>{row['Flavor Notes']}</div>
-                    <div class="coffee-detail"><span class="coffee-label">Brew:</span>{row['Brew Method']}</div>
-                    <div class="coffee-detail"><span class="coffee-label">Strength:</span>{row['Strength']}</div>
-                    <div class="coffee-detail"><span class="coffee-label">Price:</span>€{row['Price (€)']}</div>
-                </div>
-            """, unsafe_allow_html=True)
-        st.markdown("</div>", unsafe_allow_html=True)
+    st.markdown("<h3 style='color: #fbbf24; margin: 2.5rem 0 1.5rem;'>🌟 AI Barista's Personalized Recommendation</h3>", unsafe_allow_html=True)
 
         # Generate GPT message with loading spinner
-        if st.session_state.gpt_message == "":
-            openai.api_key = st.secrets["openai"]["OPENAI_API_KEY"]
-            user_pref_summary = f"Flavor: {prefs['Flavor']}, Brew Method: {prefs['Brew Method']}, Strength: {prefs['Strength']}, Temperature: {prefs['Temperature']}"
-            prompt = f"""You are a friendly barista. A customer described their coffee preferences as follows: {user_pref_summary}.
-Write a short, warm, and engaging paragraph recommending them coffee based on these preferences."""
+    if st.session_state.gpt_message == "":
+        user_pref_summary = f"Flavor: {prefs['Flavor']}, Brew Method: {prefs['Brew Method']}, Strength: {prefs['Strength']}, Temperature: {prefs['Temperature']}"
+        prompt = f"""You are a friendly barista. A customer described their coffee preferences as follows: {user_pref_summary}.
+Write a short, warm, and engaging paragraph recommending them coffee based on these preferences. Coffe should be available to buy in Ireland and tell them where they can buy it"""
 
-            with st.spinner("Brewing your personalized recommendation... 🍵"):
-                try:
-                    response = openai.ChatCompletion.create(
-                        model="gpt-3.5-turbo",
-                        messages=[{"role": "user", "content": prompt}]
-                    )
-                    st.session_state.gpt_message = response['choices'][0]['message']['content']
-                except Exception as e:
+        with st.spinner("Brewing your personalized recommendation... 🍵"):
+            try:
+                response = client.chat.completions.create(model="gpt-4o-mini",
+                    messages=[{"role": "user", "content": prompt}])
+                st.session_state.gpt_message = response.choices[0].message.content
+            except Exception as e:
                     st.error(f"An error occurred while contacting the AI service: {e}")
 
-        st.markdown("---")
-        st.subheader("Barista's Personalized Recommendation")
         st.success(st.session_state.gpt_message)
 
-    else:
-        st.warning("No exact matches found. Please try different preferences!")
-
-    # Add Twitter share button
-    share_url = "https://your-app-url.com"  # Replace with your actual app URL
-    share_text = "I just found my perfect coffee at The Grind Theory! ☕✨ Try yours here: "
-    twitter_url = f"https://twitter.com/intent/tweet?text={share_text}{share_url}&hashtags=CoffeeLovers,AI"
-    
-    st.markdown(f"""
-        <div class="share-container">
-            <a href="{twitter_url}" target="_blank" class="share-button">
-                Share on Twitter 🐦
-            </a>
-        </div>
-    """, unsafe_allow_html=True)
-    
     # Add centered restart button
     col1, col2, col3 = st.columns([1, 2, 1])
     with col2:
@@ -523,10 +553,39 @@ Write a short, warm, and engaging paragraph recommending them coffee based on th
             st.session_state.gpt_message = ""
             st.session_state.step = 1
             st.rerun()
+    
+    # Twitter share button - only shown in results
+    share_url = "https:TheGrindTheoryIreland.com"  # Replace with your actual app URL
+    share_text = "I found my perfect coffee match at The Grind Theory! ☕ Try it here:"
+    twitter_url = f"https://twitter.com/intent/tweet?text={share_text}{share_url}&hashtags=TheMostPerfectCoffee"
+
+    st.markdown(f"""
+        <style>
+            .share-button {{
+                color: white !important;
+                text-decoration: none !important;
+            }}
+            .share-button:hover, .share-button:visited {{
+                color: white !important;
+            }}
+        </style>
+        <div class="share-container">
+            <a href="{twitter_url}" target="_blank" class="share-button">
+                <span>Share on X</span>
+                <span style="font-size: 1.1rem;">🐦</span>
+            </a>
+        </div>
+    """, unsafe_allow_html=True)
+
+st.markdown(f"""
+            <div>
+            
+            </div>
+        """, unsafe_allow_html=True)
 
 st.markdown("""
 ---
-<div style='text-align: center; font-size:14px;'>
+<div class='bottom-disclaimer' style='text-align: center;'>
 This app is powered by AI. No personal data is stored. 🚀
 </div>
 """, unsafe_allow_html=True)
